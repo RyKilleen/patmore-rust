@@ -1,6 +1,6 @@
 use std::sync::RwLock;
 
-use rocket::{State, serde::json::Json};
+use rocket::{State, fs::FileServer, serde::json::Json};
 use serde::{Deserialize, Serialize};
 
 #[macro_use]
@@ -65,5 +65,6 @@ fn rocket() -> _ {
             category: Category::Kitchen,
             stores: vec![Store::BigBox, Store::Grocery],
         }]))
-        .mount("/", routes![get_items, add_item, toggle_item])
+        .mount("/items", routes![get_items, add_item, toggle_item])
+        .mount("/", FileServer::from("static"))
 }
