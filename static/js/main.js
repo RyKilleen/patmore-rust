@@ -10,27 +10,30 @@ const initWebsockets = () => {
   s = new WebSocket(
     (window.location.protocol === "https:" ? "wss://" : "ws://") +
       window.location.host +
-      "/ws/echo?channel",
+      "/ws/updates",
   );
 
   s.onmessage = function (e) {
+    const newItems = JSON.parse(e.data);
+    createListFromItems(newItems);
     console.log(e);
   };
   console.log({ s });
 };
-
+// TODO: refactor away old data calls`
 const refreshList = async () => {
   const items = await getItems();
 
-  const itemListElement = getOrCreateList(items);
+  const itemListElement = createListFromItems(items);
 };
 
 const handleCheck = async (label) => {
-  const newItems = await updateItem(label);
-  getOrCreateList(newItems);
+  // const newItems = await updateItem(label);
+  // createListFromItems(newItems);
+  s.send(JSON.stringify({ type: "toggle", label }));
 };
 
-const getOrCreateList = (items) => {
+const createListFromItems = (items) => {
   const listId = "item-list";
 
   let itemListElement;

@@ -1,16 +1,16 @@
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 
+use rocket::futures::{SinkExt, StreamExt};
 use rocket::{
-    State,
-    fs::FileServer,
-    response::status::NotFound,
-    serde::json::Json,
-    tokio::sync::mpsc::{self, UnboundedSender},
+    State, fs::FileServer, response::status::NotFound, serde::json::Json, tokio::sync::mpsc,
 };
+use rocket_ws::{Channel, Message, WebSocket};
 use serde::{Deserialize, Serialize};
 
 #[macro_use]
 extern crate rocket;
+
+// === Shared Data ===
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 enum Category {
@@ -34,14 +34,14 @@ struct ListItem {
     stores: Vec<Store>,
 }
 
-type SharedList = RwLock<Vec<ListItem>>;
+type SharedList = Arc<RwLock<Vec<ListItem>>>;
+type Clients = Arc<Mutex<Vec<mpsc::UnboundedSender<String>>>>;
 
-type Clients = Arc<RwLock<Vec<UnboundedSender<String>>>>;
+// === HTTP Routes ===
 
 #[get("/")]
 fn get_items(list: &State<SharedList>) -> Json<Vec<ListItem>> {
-    let items = list.read().expect("lock poisoned");
-    Json(items.clone())
+    Json(list.read().unwrap().clone())
 }
 
 #[patch("/<label>")]
@@ -49,24 +49,29 @@ fn toggle_item(
     list: &State<SharedList>,
     label: &str,
 ) -> Result<Json<Vec<ListItem>>, NotFound<String>> {
-    let mut items = list.write().expect("lock poisoned");
-
-    if let Some(existing) = items.iter_mut().find(|i| i.label == label) {
-        existing.needed = !existing.needed;
+    let mut items = list.write().unwrap();
+    if let Some(item) = items.iter_mut().find(|i| i.label == label) {
+        item.needed = !item.needed;
         Ok(Json(items.clone()))
     } else {
-        Err(NotFound("Oh no".into()))
+        Err(NotFound(format!("Item '{}' not found", label)))
     }
 }
 
-#[get("/subscribe")]
-fn subscribe_channel(
-    ws: rocket_ws::WebSocket,
-    clients: &State<Clients>,
-) -> rocket_ws::Channel<'static> {
-    use rocket::futures::{SinkExt, StreamExt};
+// === WebSocket Handling ===
 
+#[derive(Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+enum ClientMessage {
+    Toggle { label: String },
+    Ping,
+}
+
+#[get("/updates")]
+fn updates(ws: WebSocket, clients: &State<Clients>, list: &State<SharedList>) -> Channel<'static> {
+    // Clone Arcs for `'static` closure
     let clients = clients.inner().clone();
+    let list = list.inner().clone();
 
     ws.channel(move |stream| {
         Box::pin(async move {
@@ -75,58 +80,89 @@ fn subscribe_channel(
 
             // Register this client
             {
-                let mut locked = clients.write().unwrap();
-                locked.push(tx);
+                let mut locked = clients.lock().unwrap();
+                locked.push(tx.clone());
             }
 
-            // Task for sending messages from server → this client
+            // Task: forward messages from `rx` → WebSocket
             let send_task = rocket::tokio::spawn(async move {
                 while let Some(msg) = rx.recv().await {
-                    let _ = outgoing.send(rocket_ws::Message::Text(msg)).await;
+                    if outgoing.send(Message::Text(msg)).await.is_err() {
+                        break;
+                    }
                 }
             });
 
-            // Read loop for messages from client → broadcast
-            while let Some(Ok(message)) = incoming.next().await {
-                if let rocket_ws::Message::Text(text) = message {
-                    // Broadcast to all
-                    let clients_guard = clients.read().unwrap();
-                    for sender in clients_guard.iter() {
-                        let _ = sender.send(text.clone());
+            // Read loop: handle client messages
+            while let Some(Ok(msg)) = incoming.next().await {
+                if let Message::Text(text) = msg {
+                    match serde_json::from_str::<ClientMessage>(&text) {
+                        Ok(ClientMessage::Toggle { label }) => {
+                            // Update shared state
+                            let updated = {
+                                let mut items = list.write().unwrap();
+                                if let Some(item) = items.iter_mut().find(|i| i.label == label) {
+                                    item.needed = !item.needed;
+                                }
+                                items.clone()
+                            };
+
+                            // Broadcast new list to all clients
+                            let payload = serde_json::to_string(&updated).unwrap();
+                            let snapshot = {
+                                let guard = clients.lock().unwrap();
+                                guard.clone()
+                            };
+                            for client in snapshot {
+                                let _ = client.send(payload.clone());
+                            }
+                        }
+                        Ok(ClientMessage::Ping) => {
+                            // Respond to this client via its own sender
+                            let _ = tx.send("pong".to_string());
+                        }
+                        Err(_) => {
+                            eprintln!("Invalid message: {}", text);
+                        }
                     }
                 }
             }
 
-            // Clean up: stop sending and prune closed connections
-            send_task.abort();
+            // Clean up closed clients
             {
-                let mut clients_guard = clients.write().unwrap();
-                clients_guard.retain(|s| !s.is_closed());
+                let mut locked = clients.lock().unwrap();
+                locked.retain(|c| !c.is_closed());
             }
 
+            send_task.abort();
             Ok(())
         })
     })
 }
+
+// === Launch ===
+
 #[launch]
 fn rocket() -> _ {
     rocket::build()
-        .manage(RwLock::new(vec![
+        .manage(Arc::new(RwLock::new(vec![
             ListItem {
                 needed: true,
-                label: "Peanut Butter".to_string(),
+                label: "Peanut Butter".into(),
                 category: Category::Kitchen,
                 stores: vec![Store::BigBox, Store::Grocery],
             },
             ListItem {
-                needed: true,
-                label: "Omeperazole".to_string(),
+                needed: false,
+                label: "Omeperazole".into(),
                 category: Category::Pharmacy,
-                stores: vec![Store::BigBox, Store::Grocery],
+                stores: vec![Store::BigBox],
             },
-        ]))
-        .manage(Arc::new(RwLock::new(Vec::<UnboundedSender<String>>::new())))
+        ])))
+        .manage(Arc::new(Mutex::new(
+            Vec::<mpsc::UnboundedSender<String>>::new(),
+        )))
         .mount("/items", routes![get_items, toggle_item])
-        .mount("/ws", routes![subscribe_channel])
+        .mount("/ws", routes![updates])
         .mount("/", FileServer::from("static"))
 }
