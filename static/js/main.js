@@ -35,20 +35,22 @@ const getOrCreateList = (items) => {
     document.querySelector("body").appendChild(itemListElement);
   }
 
-  let htmlString = items
-    .map(
-      (x) => `
-      <li>
-        <label>
-          <input type="checkbox" ${x.needed && "checked"} value="${x.label}" />${x.label}
-        </label>
-    </li>`,
-    )
-    .join("");
+  let htmlString = items.map((x) => createListItemString(x)).join("");
 
   itemListElement.innerHTML = htmlString;
 
   return itemListElement;
+};
+
+const createListItemString = (item) => {
+  return `
+      
+      <li>
+        <label>
+          <input type="checkbox" ${item.needed && "checked"} value="${item.label}" />${item.label}
+        </label>
+    </li>
+    `;
 };
 
 main();
