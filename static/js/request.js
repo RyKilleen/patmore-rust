@@ -13,7 +13,7 @@ export const getItems = async () => {
 
 export const updateItem = async (label) => {
   try {
-    const resp = await fetch(`${url}/Peanut%20Butter`, {
+    const resp = await fetch(`${url}/${label}`, {
       method: "PATCH",
     })
       .then((response) => {

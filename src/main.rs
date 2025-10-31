@@ -62,12 +62,20 @@ fn toggle_item(
 #[launch]
 fn rocket() -> _ {
     rocket::build()
-        .manage(RwLock::new(vec![ListItem {
-            needed: true,
-            label: "Peanut Butter".to_string(),
-            category: Category::Kitchen,
-            stores: vec![Store::BigBox, Store::Grocery],
-        }]))
+        .manage(RwLock::new(vec![
+            ListItem {
+                needed: true,
+                label: "Peanut Butter".to_string(),
+                category: Category::Kitchen,
+                stores: vec![Store::BigBox, Store::Grocery],
+            },
+            ListItem {
+                needed: true,
+                label: "Omeperazole".to_string(),
+                category: Category::Pharmacy,
+                stores: vec![Store::BigBox, Store::Grocery],
+            },
+        ]))
         .mount("/items", routes![get_items, add_item, toggle_item])
         .mount("/", FileServer::from("static"))
 }

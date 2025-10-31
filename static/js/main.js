@@ -25,10 +25,13 @@ const getOrCreateList = (items) => {
   } else {
     itemListElement = document.createElement("ul");
     itemListElement.id = listId;
-    itemListElement.addEventListener(
-      "click",
-      (e) => e.target.type == "checkbox" && handleCheck(e.target.value),
-    );
+    itemListElement.classList.add("list");
+    itemListElement.addEventListener("click", (e) => {
+      if (e.target.type !== "checkbox") {
+        return;
+      }
+      handleCheck(e.target.value);
+    });
     document.querySelector("body").appendChild(itemListElement);
   }
 
@@ -41,7 +44,7 @@ const getOrCreateList = (items) => {
         </label>
     </li>`,
     )
-    .join();
+    .join("");
 
   itemListElement.innerHTML = htmlString;
 
