@@ -1,6 +1,6 @@
 use std::sync::RwLock;
 
-use rocket::{State, fs::FileServer, serde::json::Json};
+use rocket::{State, fs::FileServer, response::status::NotFound, serde::json::Json};
 use serde::{Deserialize, Serialize};
 
 #[macro_use]
@@ -45,14 +45,17 @@ fn add_item(list: &State<SharedList>, item: Json<ListItem>) -> &'static str {
 }
 
 #[patch("/<label>")]
-fn toggle_item(list: &State<SharedList>, label: &str) -> &'static str {
+fn toggle_item(
+    list: &State<SharedList>,
+    label: &str,
+) -> Result<Json<Vec<ListItem>>, NotFound<String>> {
     let mut items = list.write().expect("lock poisoned");
 
     if let Some(existing) = items.iter_mut().find(|i| i.label == label) {
         existing.needed = !existing.needed;
-        "Item toggled"
+        Ok(Json(items.clone()))
     } else {
-        "Item not found"
+        Err(NotFound("Oh no".into()))
     }
 }
 
