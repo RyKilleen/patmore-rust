@@ -1,7 +1,22 @@
 import { getItems, updateItem } from "./request.js";
 
+let s;
 const main = async () => {
   refreshList();
+  initWebsockets();
+};
+
+const initWebsockets = () => {
+  s = new WebSocket(
+    (window.location.protocol === "https:" ? "wss://" : "ws://") +
+      window.location.host +
+      "/ws/echo?channel",
+  );
+
+  s.onmessage = function (e) {
+    console.log(e);
+  };
+  console.log({ s });
 };
 
 const refreshList = async () => {
