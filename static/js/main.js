@@ -16,59 +16,76 @@ const initWebsockets = () => {
   s.onmessage = function (e) {
     const newItems = JSON.parse(e.data);
     createListFromItems(newItems);
-    console.log(e);
   };
-  console.log({ s });
 };
-// TODO: refactor away old data calls`
+
 const refreshList = async () => {
   const items = await getItems();
-
-  const itemListElement = createListFromItems(items);
+  createListFromItems(items);
 };
 
 const handleCheck = async (label) => {
-  // const newItems = await updateItem(label);
-  // createListFromItems(newItems);
   s.send(JSON.stringify({ type: "toggle", label }));
+};
+
+const groupByAisle = (items) => {
+  const grouped = {};
+  items.forEach((item) => {
+    item.aisle.forEach((aisle) => {
+      if (!grouped[aisle]) grouped[aisle] = [];
+      grouped[aisle].push(item);
+    });
+  });
+  return Object.fromEntries(
+    Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)),
+  );
 };
 
 const createListFromItems = (items) => {
   const listId = "item-list";
 
-  let itemListElement;
-  let itemContainerExists = !!document.getElementById(listId);
-  if (itemContainerExists) {
-    itemListElement = document.getElementById(listId);
-  } else {
-    itemListElement = document.createElement("ul");
-    itemListElement.id = listId;
-    itemListElement.classList.add("list");
-    itemListElement.addEventListener("click", (e) => {
-      if (e.target.type !== "checkbox") {
-        return;
-      }
-      handleCheck(e.target.value);
-    });
-    document.querySelector("body").appendChild(itemListElement);
+  let container =
+    document.getElementById(listId) ||
+    (() => {
+      const el = document.createElement("div");
+      el.id = listId;
+      el.classList.add("list-container");
+      el.addEventListener("click", (e) => {
+        if (e.target.type !== "checkbox") return;
+        handleCheck(e.target.value);
+      });
+      document.body.appendChild(el);
+      return el;
+    })();
+
+  const grouped = groupByAisle(items);
+
+  let htmlString = "";
+  for (const [aisle, aisleItems] of Object.entries(grouped)) {
+    htmlString += `
+      <details class="aisle-group" open>
+        <summary class="aisle-title">${aisle}</summary>
+        <ul class="aisle-list">
+          ${aisleItems.map((x) => createListItemString(x)).join("")}
+        </ul>
+      </details>
+    `;
   }
 
-  let htmlString = items.map((x) => createListItemString(x)).join("");
-
-  itemListElement.innerHTML = htmlString;
-
-  return itemListElement;
+  container.innerHTML = htmlString;
+  return container;
 };
 
-const createListItemString = (item) => {
-  return `
-      
-      <li>
-        <label>
-          <input type="checkbox" ${item.needed && "checked"} value="${item.label}" />${item.label}
-        </label>
-    </li>
-    `;
-};
+const createListItemString = (item) => `
+  <li class="item">
+    <label class="item-label">
+      <input type="checkbox" class="item-checkbox" ${
+        item.needed ? "checked" : ""
+      } value="${item.label}" />
+      <span class="toggle-switch" aria-hidden="true"></span>
+      <span class="item-text">${item.label}</span>
+    </label>
+  </li>
+`;
 
 main();

@@ -5,34 +5,16 @@ use rocket::{
     State, fs::FileServer, response::status::NotFound, serde::json::Json, tokio::sync::mpsc,
 };
 use rocket_ws::{Channel, Message, WebSocket};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+
+mod list_item;
+
+use list_item::ListItem;
+
+use crate::list_item::init_list;
 
 #[macro_use]
 extern crate rocket;
-
-// === Shared Data ===
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-enum Category {
-    Kitchen,
-    Toiletries,
-    Pharmacy,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-enum Store {
-    BigBox,
-    Grocery,
-    Convenience,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-struct ListItem {
-    needed: bool,
-    label: String,
-    category: Category,
-    stores: Vec<Store>,
-}
 
 type SharedList = Arc<RwLock<Vec<ListItem>>>;
 type Clients = Arc<Mutex<Vec<mpsc::UnboundedSender<String>>>>;
@@ -140,25 +122,10 @@ fn updates(ws: WebSocket, clients: &State<Clients>, list: &State<SharedList>) ->
     })
 }
 
-// === Launch ===
-
 #[launch]
 fn rocket() -> _ {
     rocket::build()
-        .manage(Arc::new(RwLock::new(vec![
-            ListItem {
-                needed: true,
-                label: "Peanut Butter".into(),
-                category: Category::Kitchen,
-                stores: vec![Store::BigBox, Store::Grocery],
-            },
-            ListItem {
-                needed: false,
-                label: "Omeperazole".into(),
-                category: Category::Pharmacy,
-                stores: vec![Store::BigBox],
-            },
-        ])))
+        .manage(Arc::new(RwLock::new(init_list())))
         .manage(Arc::new(Mutex::new(
             Vec::<mpsc::UnboundedSender<String>>::new(),
         )))

@@ -1,0 +1,153 @@
+[[items]]
+needed = false
+label = "Peanut Butter"
+aisle = ["Condiments", "Cereal"]
+category = "Kitchen"
+stores = ["BigBox", "Grocery"]
+
+[[items]]
+needed = false
+label = "Omeprazole"
+aisle = ["Pharmacy"]
+category = "Pharmacy"
+stores = ["BigBox"]
+
+[[items]]
+needed = false
+label = "Salt"
+aisle = ["Baking", "Spices"]
+category = "Kitchen"
+stores = ["Grocery", "BigBox"]
+
+[[items]]
+needed = false
+label = "Lemon Juice"
+aisle = ["Condiments"]
+category = "Kitchen"
+stores = ["Grocery"]
+
+[[items]]
+needed = false
+label = "Seltzer"
+aisle = ["Beverages"]
+category = "Kitchen"
+stores = ["Grocery", "BigBox"]
+
+[[items]]
+needed = false
+label = "Dark Brown Sugar"
+aisle = ["Baking"]
+category = "Kitchen"
+stores = ["Grocery"]
+
+[[items]]
+needed = false
+label = "Onions"
+aisle = ["Produce"]
+category = "Kitchen"
+stores = ["Grocery"]
+
+[[items]]
+needed = false
+label = "Carrots"
+aisle = ["Produce"]
+category = "Kitchen"
+stores = ["Grocery"]
+
+[[items]]
+needed = false
+label = "Chips"
+aisle = ["Snacks"]
+category = "Pantry"
+stores = ["Grocery", "BigBox"]
+
+[[items]]
+needed = false
+label = "Hummus"
+aisle = ["Refrigerated", "Deli"]
+category = "Kitchen"
+stores = ["Grocery"]
+
+[[items]]
+needed = false
+label = "Guac"
+aisle = ["Refrigerated", "Deli"]
+category = "Kitchen"
+stores = ["Grocery"]
+
+[[items]]
+needed = false
+label = "Yogurt"
+aisle = ["Dairy"]
+category = "Kitchen"
+stores = ["Grocery"]
+
+[[items]]
+needed = false
+label = "Spinach"
+aisle = ["Produce"]
+category = "Kitchen"
+stores = ["Grocery"]
+
+[[items]]
+needed = false
+label = "Broccoli"
+aisle = ["Produce"]
+category = "Kitchen"
+stores = ["Grocery"]
+
+[[items]]
+needed = false
+label = "Chicken"
+aisle = ["Meat"]
+category = "Kitchen"
+stores = ["Grocery"]
+
+[[items]]
+needed = false
+label = "Pancetta"
+aisle = ["Deli", "Meat"]
+category = "Kitchen"
+stores = ["Grocery"]
+
+[[items]]
+needed = false
+label = "Butternut Squash"
+aisle = ["Produce"]
+category = "Kitchen"
+stores = ["Grocery"]
+
+[[items]]
+needed = false
+label = "Grapes"
+aisle = ["Produce"]
+category = "Kitchen"
+stores = ["Grocery"]
+
+[[items]]
+needed = false
+label = "Apples"
+aisle = ["Produce"]
+category = "Kitchen"
+stores = ["Grocery"]
+
+[[items]]
+needed = false
+label = "Bananas"
+aisle = ["Produce"]
+category = "Kitchen"
+stores = ["Grocery"]
+
+[[items]]
+needed = false
+label = "Minced Garlic"
+aisle = ["Condiments", "Spices"]
+category = "Kitchen"
+stores = ["Grocery"]
+
+[[items]]
+needed = false
+label = "Trash Bags"
+aisle = ["Household"]
+category = "Household"
+stores = ["Grocery", "BigBox"]
