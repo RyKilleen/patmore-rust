@@ -2,9 +2,7 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use rocket::futures::{SinkExt, StreamExt};
 use rocket::http::Status;
-use rocket::{
-    State, fs::FileServer, response::status::NotFound, serde::json::Json, tokio::sync::mpsc,
-};
+use rocket::{State, fs::FileServer, serde::json::Json, tokio::sync::mpsc};
 use rocket_ws::{Channel, Message, WebSocket};
 use serde::Deserialize;
 
@@ -79,7 +77,7 @@ fn updates(ws: WebSocket, clients: &State<Clients>, list: &State<SharedList>) ->
                                 items.clone()
                             };
 
-                            save_list(updated.clone());
+                            let _ = save_list(updated.clone()).expect("Couldn't save file");
 
                             // Broadcast new list to all clients
                             let payload = serde_json::to_string(&updated).unwrap();
