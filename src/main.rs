@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex, RwLock};
 
 use rocket::futures::{SinkExt, StreamExt};
+use rocket::http::Status;
 use rocket::{
     State, fs::FileServer, response::status::NotFound, serde::json::Json, tokio::sync::mpsc,
 };
@@ -11,7 +12,7 @@ mod list_item;
 
 use list_item::ListItem;
 
-use crate::list_item::init_list;
+use crate::list_item::{init_list, save_list};
 
 #[macro_use]
 extern crate rocket;
@@ -21,26 +22,15 @@ type Clients = Arc<Mutex<Vec<mpsc::UnboundedSender<String>>>>;
 
 // === HTTP Routes ===
 
-#[get("/")]
+#[get("/items")]
 fn get_items(list: &State<SharedList>) -> Json<Vec<ListItem>> {
     Json(list.read().unwrap().clone())
 }
 
-#[patch("/<label>")]
-fn toggle_item(
-    list: &State<SharedList>,
-    label: &str,
-) -> Result<Json<Vec<ListItem>>, NotFound<String>> {
-    let mut items = list.write().unwrap();
-    if let Some(item) = items.iter_mut().find(|i| i.label == label) {
-        item.needed = !item.needed;
-        Ok(Json(items.clone()))
-    } else {
-        Err(NotFound(format!("Item '{}' not found", label)))
-    }
+#[get("/health")]
+fn health_check() -> Status {
+    Status::Ok
 }
-
-// === WebSocket Handling ===
 
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
@@ -89,6 +79,8 @@ fn updates(ws: WebSocket, clients: &State<Clients>, list: &State<SharedList>) ->
                                 items.clone()
                             };
 
+                            save_list(updated.clone());
+
                             // Broadcast new list to all clients
                             let payload = serde_json::to_string(&updated).unwrap();
                             let snapshot = {
@@ -129,7 +121,7 @@ fn rocket() -> _ {
         .manage(Arc::new(Mutex::new(
             Vec::<mpsc::UnboundedSender<String>>::new(),
         )))
-        .mount("/items", routes![get_items, toggle_item])
+        .mount("/", routes![get_items, health_check])
         .mount("/ws", routes![updates])
         .mount("/", FileServer::from("static"))
 }
