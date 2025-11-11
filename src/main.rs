@@ -10,7 +10,7 @@ mod list_item;
 
 use list_item::ListItem;
 
-use crate::list_item::{init_list, save_list};
+use crate::list_item::{get_default_list, save_list_to_file};
 
 #[macro_use]
 extern crate rocket;
@@ -77,7 +77,7 @@ fn updates(ws: WebSocket, clients: &State<Clients>, list: &State<SharedList>) ->
                                 items.clone()
                             };
 
-                            let _ = save_list(updated.clone()).expect("Couldn't save file");
+                            let _ = save_list_to_file(updated.clone()).expect("Couldn't save file");
 
                             // Broadcast new list to all clients
                             let payload = serde_json::to_string(&updated).unwrap();
@@ -115,7 +115,9 @@ fn updates(ws: WebSocket, clients: &State<Clients>, list: &State<SharedList>) ->
 #[launch]
 fn rocket() -> _ {
     rocket::build()
-        .manage(Arc::new(RwLock::new(init_list())))
+        .manage(Arc::new(RwLock::new(
+            get_default_list().expect("Couldn't get default list"),
+        )))
         .manage(Arc::new(Mutex::new(
             Vec::<mpsc::UnboundedSender<String>>::new(),
         )))

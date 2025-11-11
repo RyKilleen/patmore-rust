@@ -1,6 +1,6 @@
-use std::fs;
-
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::io::Error;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Category {
@@ -50,16 +50,36 @@ pub struct ItemList {
 
 const DATA_PATH: &str = "data/defaults.toml";
 
-pub fn init_list() -> Vec<ListItem> {
-    let data = fs::read_to_string(DATA_PATH).expect("Failed to read items.toml");
-    let parsed: ItemList = toml::from_str(&data).expect("Failed to parse TOML");
-    parsed.items
+fn get_default_file() -> Result<String, Error> {
+    let data = fs::read_to_string(DATA_PATH)?;
+    Ok(data)
 }
 
-pub fn save_list(items: Vec<ListItem>) -> std::io::Result<()> {
+pub fn get_default_list() -> Result<Vec<ListItem>, Error> {
+    let data = get_default_file().expect("Dang");
+    let parsed: ItemList = toml::from_str(&data).expect("Couldn't Parse");
+    Ok(parsed.items)
+}
+
+pub fn save_list_to_file(items: Vec<ListItem>) -> std::io::Result<()> {
     let item_list = ItemList { items };
     let data = toml::to_string(&item_list).unwrap();
 
     fs::write(DATA_PATH, data)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn can_get_defaults() {
+        let default_file = get_default_file();
+        assert!(default_file.is_ok());
+        let default_items = get_default_list();
+
+        assert!(default_items.is_ok());
+        assert!(default_items.unwrap().len() > 0);
+    }
 }
