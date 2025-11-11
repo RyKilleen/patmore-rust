@@ -48,7 +48,7 @@ pub struct ItemList {
     pub items: Vec<ListItem>,
 }
 
-const DATA_PATH: &str = "data/items.toml";
+const DATA_PATH: &str = "data/defaults.toml";
 
 pub fn init_list() -> Vec<ListItem> {
     let data = fs::read_to_string(DATA_PATH).expect("Failed to read items.toml");
