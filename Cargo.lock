@@ -802,6 +802,7 @@ dependencies = [
 name = "patmore-rust"
 version = "0.1.0"
 dependencies = [
+ "log",
  "rocket",
  "rocket_ws",
  "serde",

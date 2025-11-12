@@ -5,34 +5,30 @@ let allItems = [];
 let showNeededOnly = false;
 
 const main = async () => {
-  await refreshList();
   initWebsockets();
   initFilterToggle();
 };
 
 const initWebsockets = () => {
-  s = new WebSocket(
-    (window.location.protocol === "https:" ? "wss://" : "ws://") +
-      window.location.host +
-      "/ws/updates",
-  );
+  const protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+  // const tenant = window.location.pathname;
+
+  let [, , tenant_name] = window.location.pathname.split("/");
+  const wsURL = `${protocol}${window.location.host}/ws/${tenant_name}/updates`;
+  s = new WebSocket(wsURL);
 
   s.onmessage = (e) => {
-    allItems = JSON.parse(e.data);
-    renderList();
+    const res = JSON.parse(e.data);
+    console.info(res);
+    if (res.type === "init" || res.type === "update") {
+      allItems = res.data;
+      renderList();
+    }
   };
-};
-
-const refreshList = async () => {
-  allItems = await getItems();
-  renderList();
 };
 
 const handleCheck = (label, checked) => {
   s.send(JSON.stringify({ type: "toggle", label }));
-  // Update the local state immediately
-  const item = allItems.find((i) => i.label === label);
-  if (item) item.needed = checked;
 };
 
 // Render filtered list with in-place DOM updates
